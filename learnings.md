@@ -190,3 +190,53 @@ w.Write([]byte(`{"name":"Alex"}`))
 ```
 w.Header()["Date"] = nil
 ```
+
+
+
+## URL Query Strings
+
+
+- to extract id from th url `/snippet?id=1` => `r.URL.Query().Get("id")`
+
+
+```
+package main
+import (
+"fmt" // New import 
+"log"
+"net/http"
+"strconv" // New import
+)
+...
+func showSnippet(w http.ResponseWriter, r *http.Request) {
+	// Extract the value of the id parameter from the query string and try to
+	// convert it to an integer using the strconv.Atoi() function. If it can't
+	// be converted to an integer, or the value is less than 1, we return a 404 page 
+    // not found response.
+	
+	id, err := strconv.Atoi(r.URL.Query().Get("id"))
+	if err != nil || id < 1 {
+		http.NotFound(w, r)
+		return
+	}
+	// Use the fmt.Fprintf() function to interpolate the id value with our response
+    // and write it to the http.ResponseWriter.
+	fmt.Fprintf(w, "Display a specific snippet with ID %d...", id)
+}
+
+```
+
+
+
+## The io.Writer Interface
+
+
+- If you take a look at the documentation for the fmt.Fprintf() function you’ll notice that it takes an io.Writer as the first paramete
+
+- `func Fprintf(w io.Writer, format string, a ...interface{}) (n int, err error)`
+- but above in the code snippet we passed it our http.ResponseWriter object instead — and it worked fine.
+
+- We’re able to do this because the io.Writer type is an interface, and the http.ResponseWriter object satisfies the interface because it has a w.Write() method.
+
+
+
