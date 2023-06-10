@@ -240,3 +240,31 @@ func showSnippet(w http.ResponseWriter, r *http.Request) {
 
 
 
+
+## Templating 
+
+```
+{{define "base"}}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>{{template "title" .}} - Snippetbox</title>
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">Snippetbox</a></h1>
+    </header>
+    <nav>
+      <a href="/">Home</a>
+    </nav>
+    <section>{{template "body" .}}</section>
+  </body>
+</html>
+{{end}}
+
+```
+
+
+- Here we’re using the {{define "base"}}...{{end}} action to define a distinct named template called base, which contains the content we want to appear on every page.
+- The {{template "title" .}} and {{template "body" .}} actions denote that we want to invoke other named templates (called title and body) at a particular point in the HTML.
