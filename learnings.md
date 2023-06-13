@@ -268,3 +268,87 @@ func showSnippet(w http.ResponseWriter, r *http.Request) {
 
 - Here we’re using the {{define "base"}}...{{end}} action to define a distinct named template called base, which contains the content we want to appear on every page.
 - The {{template "title" .}} and {{template "body" .}} actions denote that we want to invoke other named templates (called title and body) at a particular point in the HTML.
+
+
+
+
+## FileServer
+
+- We can serve static files with the help of inbuilt fileServer function
+
+```
+package main
+
+import (
+	"log"
+	"net/http"
+)
+func main() {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", home) 
+	mux.HandleFunc("/snippet", showSnippet) 
+	mux.HandleFunc("/snippet/create", createSnippet)
+
+	// Create a file server which serves files out of the "./ui/static" directory. 
+	// Note that the path given to the http.Dir function is relative to the project // directory root.
+	fileServer := http.FileServer(http.Dir("./ui/static/"))
+	// Use the mux.Handle() function to register the file server as the handler for 
+	// all URL paths that start with "/static/". For matching paths, we strip the 
+	// "/static" prefix before the request reaches the file server. 
+	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
+
+
+
+	log.Println("Starting server on :4000") 
+	err := http.ListenAndServe(":4000", mux) 
+	log.Fatal(err)
+}
+
+
+```
+
+
+
+We can then use the served files by adding relative path like this 
+
+```
+
+<link rel='stylesheet' href='/static/css/main.css'>
+<link rel='shortcut icon' href='/static/img/favicon.ico' type='image/x-icon'>
+<!-- Also link to some fonts hosted by Google -->
+<link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700'>
+
+```
+
+
+- Go fileServer sanitizes all request paths by running them through the `path.Clean()` function before searching for a file. This removes any . and .. elements from the URL path, which helps to stop directory traversal attacks. This feature is particularly useful if you’re using the fileserver in conjunction with a router that doesn’t automatically sanitize URL paths.
+
+
+
+## Serve single file
+- Sometimes you might want to serve a single file from within a handler. For this there’s the http.ServeFile() function, which you can use like so:
+
+```
+func downloadHandler(w http.ResponseWriter, r *http.Request) { 
+  http.ServeFile(w, r, "./ui/static/file.zip")
+}
+```
+
+- But be aware: http.ServeFile() does not automatically sanitize the file path. If you’re constructing a file path from untrusted user input, to avoid directory traversal attacks you must sanitize the input with filepath.Clean() before using it.
+
+
+## Handler
+
+- A handler is an object which satisfies the http.Handler interface:
+
+```
+type Handler interface { 
+  ServeHTTP(ResponseWriter, *Request)
+}
+```
+
+- a handler an object must have a ServeHTTP() method with the exact signature:
+
+```
+ServeHTTP(http.ResponseWriter, *http.Request)
+```
