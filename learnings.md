@@ -137,15 +137,14 @@ if r.Method != "POST" {
 - `w.Header().Set()` is used to set a header in the response header map.
 - Jut like that we have more functions that can modify the header map.
 
-
 ```
 
-// Set a new cache-control header. If an existing "Cache-Control" header exists 
+// Set a new cache-control header. If an existing "Cache-Control" header exists
 // it will be overwritten.
 w.Header().Set("Cache-Control", "public, max-age=31536000")
 
 
-// In contrast, the Add() method appends a new "Cache-Control" header and can 
+// In contrast, the Add() method appends a new "Cache-Control" header and can
 // be called multiple times.
 w.Header().Add("Cache-Control", "public")
 w.Header().Add("Cache-Control", "max-age=31536000")
@@ -159,19 +158,15 @@ w.Header().Get("Cache-Control")
 
 ```
 
-
-
 - Go will automatically set three system-generated headers for you: `Date` and `Content-Length` and `Content-Type`.
 - GO can’t distinguish JSON from plain text. And, by default,JSON responses will be sent with a `Content-Type: text/plain; charset=utf-8` header.
-- We can manually set it for JSON like this 
+- We can manually set it for JSON like this
 
 ```
-w.Header().Set("Content-Type", "application/json") 
+w.Header().Set("Content-Type", "application/json")
 w.Write([]byte(`{"name":"Alex"}`))
 
 ```
-
-
 
 ## Header Canonicalization
 
@@ -180,29 +175,25 @@ w.Write([]byte(`{"name":"Alex"}`))
 - It means the first letter and the letters after the dash all of them will be capitalized.
 
 - We can avoid this default behaviour by manually adding a key to the object that `w.Header()` returns => `w.Header()["X-XSS-Protection"] = []string{"1; mode=block"}`
-- Here we are adding `"X-XSS-Protection"` manually so it will remain as it is exactly. 
+- Here we are adding `"X-XSS-Protection"` manually so it will remain as it is exactly.
 - On the right hand side we have `[]string{"1; mode=block"}`, this is an array of string and the first value will be => `"1; mode=block"`
 
-
 ## Suppressing System-Generated Headers
+
 - The Del() method doesn’t remove system-generated headers. To suppress these, you need to access the underlying header map directly and set the value to nil. If you want to suppress the Date header, for example, you need to write:
 
 ```
 w.Header()["Date"] = nil
 ```
 
-
-
 ## URL Query Strings
 
-
 - to extract id from th url `/snippet?id=1` => `r.URL.Query().Get("id")`
-
 
 ```
 package main
 import (
-"fmt" // New import 
+"fmt" // New import
 "log"
 "net/http"
 "strconv" // New import
@@ -211,9 +202,9 @@ import (
 func showSnippet(w http.ResponseWriter, r *http.Request) {
 	// Extract the value of the id parameter from the query string and try to
 	// convert it to an integer using the strconv.Atoi() function. If it can't
-	// be converted to an integer, or the value is less than 1, we return a 404 page 
+	// be converted to an integer, or the value is less than 1, we return a 404 page
     // not found response.
-	
+
 	id, err := strconv.Atoi(r.URL.Query().Get("id"))
 	if err != nil || id < 1 {
 		http.NotFound(w, r)
@@ -226,10 +217,7 @@ func showSnippet(w http.ResponseWriter, r *http.Request) {
 
 ```
 
-
-
 ## The io.Writer Interface
-
 
 - If you take a look at the documentation for the fmt.Fprintf() function you’ll notice that it takes an io.Writer as the first paramete
 
@@ -238,10 +226,7 @@ func showSnippet(w http.ResponseWriter, r *http.Request) {
 
 - We’re able to do this because the io.Writer type is an interface, and the http.ResponseWriter object satisfies the interface because it has a w.Write() method.
 
-
-
-
-## Templating 
+## Templating
 
 ```
 {{define "base"}}
@@ -265,12 +250,8 @@ func showSnippet(w http.ResponseWriter, r *http.Request) {
 
 ```
 
-
 - Here we’re using the {{define "base"}}...{{end}} action to define a distinct named template called base, which contains the content we want to appear on every page.
 - The {{template "title" .}} and {{template "body" .}} actions denote that we want to invoke other named templates (called title and body) at a particular point in the HTML.
-
-
-
 
 ## FileServer
 
@@ -285,31 +266,29 @@ import (
 )
 func main() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", home) 
-	mux.HandleFunc("/snippet", showSnippet) 
+	mux.HandleFunc("/", home)
+	mux.HandleFunc("/snippet", showSnippet)
 	mux.HandleFunc("/snippet/create", createSnippet)
 
-	// Create a file server which serves files out of the "./ui/static" directory. 
+	// Create a file server which serves files out of the "./ui/static" directory.
 	// Note that the path given to the http.Dir function is relative to the project // directory root.
 	fileServer := http.FileServer(http.Dir("./ui/static/"))
-	// Use the mux.Handle() function to register the file server as the handler for 
-	// all URL paths that start with "/static/". For matching paths, we strip the 
-	// "/static" prefix before the request reaches the file server. 
+	// Use the mux.Handle() function to register the file server as the handler for
+	// all URL paths that start with "/static/". For matching paths, we strip the
+	// "/static" prefix before the request reaches the file server.
 	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 
 
 
-	log.Println("Starting server on :4000") 
-	err := http.ListenAndServe(":4000", mux) 
+	log.Println("Starting server on :4000")
+	err := http.ListenAndServe(":4000", mux)
 	log.Fatal(err)
 }
 
 
 ```
 
-
-
-We can then use the served files by adding relative path like this 
+We can then use the served files by adding relative path like this
 
 ```
 
@@ -320,29 +299,26 @@ We can then use the served files by adding relative path like this
 
 ```
 
-
 - Go fileServer sanitizes all request paths by running them through the `path.Clean()` function before searching for a file. This removes any . and .. elements from the URL path, which helps to stop directory traversal attacks. This feature is particularly useful if you’re using the fileserver in conjunction with a router that doesn’t automatically sanitize URL paths.
 
-
-
 ## Serve single file
+
 - Sometimes you might want to serve a single file from within a handler. For this there’s the http.ServeFile() function, which you can use like so:
 
 ```
-func downloadHandler(w http.ResponseWriter, r *http.Request) { 
+func downloadHandler(w http.ResponseWriter, r *http.Request) {
   http.ServeFile(w, r, "./ui/static/file.zip")
 }
 ```
 
 - But be aware: http.ServeFile() does not automatically sanitize the file path. If you’re constructing a file path from untrusted user input, to avoid directory traversal attacks you must sanitize the input with filepath.Clean() before using it.
 
-
 ## Handler
 
 - A handler is an object which satisfies the http.Handler interface:
 
 ```
-type Handler interface { 
+type Handler interface {
   ServeHTTP(ResponseWriter, *Request)
 }
 ```
@@ -353,18 +329,15 @@ type Handler interface {
 ServeHTTP(http.ResponseWriter, *http.Request)
 ```
 
-
 ## Command line flags
 
 - we can send variable values from command line
 - addr is a variable whose value is being passed here
 
-
-
-
 => `go run cmd/web/* -addr=":80"`
+
 ```
-  // Define a new command-line flag with the name 'addr', a default value of ":4000" 
+  // Define a new command-line flag with the name 'addr', a default value of ":4000"
   // and some short help text explaining what the flag controls. The value of the
   // flag will be stored in the addr variable at runtime.
   addr := flag.String("addr", ":4000", "HTTP network address")
@@ -373,12 +346,12 @@ ServeHTTP(http.ResponseWriter, *http.Request)
 	// Importantly, we use the flag.Parse() function to parse the command-line flag.
 	// This reads in the command-line flag value and assigns it to the addr
 	// variable. You need to call this *before* you use the addr variable
-	// otherwise it will always contain the default value of ":4000". If any errors are 
+	// otherwise it will always contain the default value of ":4000". If any errors are
 	// encountered during parsing the application will be terminated.
 	flag.Parse()
 
 
-  // The value returned from the flag.String() function is a pointer to the flag 
+  // The value returned from the flag.String() function is a pointer to the flag
   // value, not the value itself. So we need to dereference the pointer (i.e.
   // prefix it with the * symbol) before using it.
   log.Printf("Starting server on %s", *addr)
@@ -386,11 +359,9 @@ ServeHTTP(http.ResponseWriter, *http.Request)
 
 ```
 
-
-
 ## Automated Help
-- -help will list all of the possible flags that can be types in the run command
 
+- -help will list all of the possible flags that can be types in the run command
 
 ```
 go run cmd/web/* -help
@@ -398,4 +369,71 @@ Usage of /tmp/go-build786121279/b001/exe/handlers:
      -addr string
         HTTP network address (default ":4000") exit status 2
 ```
+
+## Leveled logging
+
+- Go’s standard logger prefixes the message with the local date and time.
+- We can create our own loggers
+- We will use `log.New()` function to create two new custom loggers.
+- If you want to include the full file path in your log output, instead of just the file name, you can use the `log.Llongfile` flag instead of `log.Lshortfile`
+
+```
+	// Use log.New() to create a logger for writing information messages. This takes
+	// three parameters: the destination to write the logs to (os.Stdout), a string
+	// prefix for message (INFO followed by a tab), and flags to indicate what
+	// additional information to include (local date and time). Note that the flags
+	// are joined using the bitwise OR operator |.
+	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+	// Create a logger for writing error messages in the same way, but use stderr as
+	// the destination and use the log.Lshortfile flag to include the relevant
+	// file name and line number.
+	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+
+    // Write messages using the two new loggers, instead of the standard logger.
+    infoLog.Printf("Starting server on %s", *addr)
+    err := http.ListenAndServe(*addr, mux) errorLog.Fatal(err)
+```
+
+Tip:
+
+- By default, if Go’s HTTP server encounters an error it will log it using the standard logger. We can make it use our `errorLogger` we created.
+- We need to initialize a new `http.Server` struct with the settings for our server and then we can use this new struct instead of using the `http.ListenAndServe()`
+
+```
+  // Initialize a new http.Server struct. We set the Addr and Handler fields so
+  // that the server uses the same network address and routes as before, and set
+  // the ErrorLog field so that the server now uses the custom errorLog logger in
+  // the event of any problems.
+  srv := &http.Server{
+    Addr: *addr, ErrorLog: errorLog, Handler: mux,
+}
+  infoLog.Printf("Starting server on %s", *addr)
+  // Call the ListenAndServe() method on our new http.Server struct. 
+  err := srv.ListenAndServe()
+  errorLog.Fatal(err)
+
+```
+
+
+- As a rule of thumb, you should avoid using the Panic() and Fatal() variations outside of your main() function — it’s good practice to return errors instead, and only panic or exit directly from main().
+
+
+## Writing logs to a file
+
+```
+  f, err := os.OpenFile("/tmp/info.log", os.O_RDWR|os.O_CREATE, 0666) 
+  if err != nil {
+    log.Fatal(err) 
+  }
+  defer f.Close()
+  infoLog := log.New(f, "INFO\t", log.Ldate|log.Ltime)
+```
+
+
+## Dependencies injection
+
+- Since we have now created new custom logger functions in main.go file we want them to also be used in handler functions.
+- In order to link the dependencies in two files, we create a new `application` struct and add all of the handlers as methods/functions to this struct and we also add those two new logger functions as methods/functions to this new struct, now they are all linked to each other through this new struct.
+- But this technique only works when all the handlers are situated in a single file.
+- When the handlers are located in multiple files then we should follow something like this -> https://gist.github.com/alexedwards/5cd712192b4831058b21
 
