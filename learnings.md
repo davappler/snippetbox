@@ -445,3 +445,50 @@ func (app *application) notFound(w http.ResponseWriter) {
 }
 
 ```
+
+## Database connection
+
+```
+
+import (
+  "database/sql" // New import "flag"
+  "log"
+  "net/http"
+  "os"
+  _ "github.com/go-sql-driver/mysql" // New import
+)
+
+
+func main() {
+
+  dsn := flag.String("dsn", "web:pass@/snippetbox?parseTime=true", "MySQL data source name")
+  flag.Parse()
+
+
+  db, err := openDB(*dsn)
+  if err != nil {
+    errorLog.Fatal(err)
+  }
+
+  // We also defer a call to db.Close(), so that the connection pool is closed
+  // before the main() function exits.
+  defer db.Close()
+}
+
+func openDB(dsn string) (*sql.DB, error) {
+	db, err := sql.Open("mysql", dsn)
+	if err != nil { return nil, err
+	}
+	if err = db.Ping(); err != nil {
+	return nil, err }
+	return db, nil
+}
+
+```
+
+- Notice how the import path for our driver is prefixed with an underscore? This is because our main.go file doesn’t actually use anything in the mysql package. So if we try to import it normally the Go compiler will raise an error. However, we need the driver’s init() function to run so that it can register itself with the database/sql package. The trick to getting around this is to alias the package name to the blank identifier. This is standard practice for most of Go’s SQL drivers.
+
+- The sql.Open() function doesn’t actually create any connections, all it does is initialize the pool for future use. Actual connections to the database are established lazily, as and when needed for the first time. So to verify that everything is set up correctly we need to use the db.Ping() method to create a connection and check for any errors.
+
+- At this moment in time, the call to defer db.Close() is a bit superfluous. Our application is only ever terminated by a signal interrupt (i.e. Ctrl+c) or by errorLog.Fatal(). In both of those cases, the program exits immediately and deferred functions are never run. But including db.Close() is a good habit to get into and it could be beneficial later in the future if you add a graceful shutdown to your application.
+
