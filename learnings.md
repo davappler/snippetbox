@@ -408,27 +408,24 @@ Tip:
     Addr: *addr, ErrorLog: errorLog, Handler: mux,
 }
   infoLog.Printf("Starting server on %s", *addr)
-  // Call the ListenAndServe() method on our new http.Server struct. 
+  // Call the ListenAndServe() method on our new http.Server struct.
   err := srv.ListenAndServe()
   errorLog.Fatal(err)
 
 ```
 
-
 - As a rule of thumb, you should avoid using the Panic() and Fatal() variations outside of your main() function — it’s good practice to return errors instead, and only panic or exit directly from main().
-
 
 ## Writing logs to a file
 
 ```
-  f, err := os.OpenFile("/tmp/info.log", os.O_RDWR|os.O_CREATE, 0666) 
+  f, err := os.OpenFile("/tmp/info.log", os.O_RDWR|os.O_CREATE, 0666)
   if err != nil {
-    log.Fatal(err) 
+    log.Fatal(err)
   }
   defer f.Close()
   infoLog := log.New(f, "INFO\t", log.Ldate|log.Ltime)
 ```
-
 
 ## Dependencies injection
 
@@ -437,3 +434,14 @@ Tip:
 - But this technique only works when all the handlers are situated in a single file.
 - When the handlers are located in multiple files then we should follow something like this -> https://gist.github.com/alexedwards/5cd712192b4831058b21
 
+## Status code Constants
+
+- Instead of using 404 or 500 we can use the constants defined here => https://pkg.go.dev/net/http#pkg-constants
+- Example =>
+
+```
+func (app *application) notFound(w http.ResponseWriter) {
+  app.clientError(w, http.StatusNotFound)  // StatusNotFound is a constant for 404
+}
+
+```
