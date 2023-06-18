@@ -492,3 +492,58 @@ func openDB(dsn string) (*sql.DB, error) {
 
 - At this moment in time, the call to defer db.Close() is a bit superfluous. Our application is only ever terminated by a signal interrupt (i.e. Ctrl+c) or by errorLog.Fatal(). In both of those cases, the program exits immediately and deferred functions are never run. But including db.Close() is a good habit to get into and it could be beneficial later in the future if you add a graceful shutdown to your application.
 
+
+
+## Designing a Database Model
+
+- We’ll start by using the pkg/models/models.go file to define the top-level data types that
+our database model will use and return.
+- pkg/models/mysql/snippets.go file, which will contain the code specifically for working with the snippets in our MySQL database, In this file we’re going to define a new SnippetModel type and implement some methods on it to access and manipulate the database. Like so:
+
+
+
+```
+// Define a SnippetModel type which wraps a sql.DB connection pool.
+type SnippetModel struct { 
+  DB *sql.DB
+}
+
+```
+
+Using the SnippetModal
+- To use this model in our handlers we need to establish a new SnippetModel struct in main()
+- Then inject it as a dependency via the application struct
+
+
+```
+// Add a snippets field to the application struct. This will allow us to 
+// make the SnippetModel object available to our handlers.
+type application struct {
+  errorLog *log.Logger
+  infoLog *log.Logger snippets *mysql.SnippetModel
+}
+
+.
+.
+.
+
+
+// Initialize a mysql.SnippetModel instance and add it to the application 
+// dependencies.
+app := &application{
+  errorLog: errorLog,
+  infoLog: infoLog,
+  snippets: &mysql.SnippetModel{DB: db},
+}
+
+```
+
+Benefits of This Structure
+- There’s a clean separation of concerns. Our database logic isn’t tied to our handlers which means that handler responsibilities are limited to HTTP stuff (i.e. validating requests and writing responses). This will make it easier to write tight, focused, unit tests in the future.
+- By creating a custom SnippetModel type and implementing methods on it we’ve been able to make our model a single, neatly encapsulated object, which we can easily initialize and then pass to our handlers as a dependency. Again, this makes for easier to maintain, testable code.
+- Because the model actions are defined as methods on an object — in our case SnippetModel — there’s the opportunity to create an interface and mock it for unit testing purposes.
+- We have total control over which database is used at runtime, just by using the command-line flag.
+- And finally, the directory structure scales nicely if your project has multiple back ends. For example, if some of your data is held in Redis you could put all the models for it in a pkg/models/redis package.
+
+
+
