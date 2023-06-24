@@ -516,7 +516,8 @@ Using the SnippetModal
 // make the SnippetModel object available to our handlers.
 type application struct {
   errorLog *log.Logger
-  infoLog *log.Logger snippets *mysql.SnippetModel
+  infoLog *log.Logger 
+  snippets *mysql.SnippetModel
 }
 
 .
