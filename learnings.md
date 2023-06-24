@@ -545,6 +545,9 @@ Benefits of This Structure
 ## Executing SQL Statements
 
 - Notice how in this query we’re using the ? character to indicate placeholder parameters for the data that we want to insert in the database? Because the data we’ll be using will ultimately be untrusted user input from a form, it’s good practice to use placeholder parameters instead of interpolating data in the SQL query.
+- In the code we constructed our SQL statement using placeholder parameters, where ? acted as a placeholder for the data we want to insert.
+The reason for using placeholder parameters to construct our query (rather than string interpolation) is to help avoid SQL injection attacks from any untrusted user-provided input.
+
 
 ```
 	stmt := `INSERT INTO snippets (title, content, created, expires)
@@ -604,3 +607,10 @@ don’t need it. Like so:
 _, err := m.DB.Exec("INSERT INTO ...", ...)
 ```
 
+
+
+Behind the scenes, the DB.Exec() method works in three steps:
+
+- It creates a new prepared statement on the database using the provided SQL statement. The database parses and compiles the statement, then stores it ready for execution.
+- In a second separate step, Exec() passes the parameter values to the database. The database then executes the prepared statement using these parameters. Because the parameters are transmitted later, after the statement has been compiled, the database treats them as pure data. They can’t change the intent of the statement. So long as the original statement is not derived from an untrusted data, injection cannot occur.
+- It then closes (or deallocates) the prepared statement on the database.
