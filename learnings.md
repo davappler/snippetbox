@@ -615,3 +615,51 @@ Behind the scenes, the DB.Exec() method works in three steps:
 - It creates a new prepared statement on the database using the provided SQL statement. The database parses and compiles the statement, then stores it ready for execution.
 - In a second separate step, Exec() passes the parameter values to the database. The database then executes the prepared statement using these parameters. Because the parameters are transmitted later, after the statement has been compiled, the database treats them as pure data. They can’t change the intent of the statement. So long as the original statement is not derived from an untrusted data, injection cannot occur.
 - It then closes (or deallocates) the prepared statement on the database.
+
+
+## Single-record SQL Queries
+
+- With the help of QueryRow we can query a single row
+
+```
+
+
+  stmt := `SELECT id, title, content, created, expires FROM snippets
+  WHERE expires > UTC_TIMESTAMP() AND id = ?`
+  // Use the QueryRow() method on the connection pool to execute our
+  // SQL statement, passing in the untrusted id variable as the value for the 
+  // placeholder parameter. This returns a pointer to a sql.Row object which 
+  // holds the result from the database.
+  row := m.DB.QueryRow(stmt, id)
+
+
+	// Initialize a pointer to a new zeroed Snippet struct.
+	s := &models.Snippet{}
+	// Use row.Scan() to copy the values from each field in sql.Row to the
+	// corresponding field in the Snippet struct. Notice that the arguments
+	// to row.Scan are *pointers* to the place you want to copy the data into,
+	// and the number of arguments must be exactly the same as the number of
+	// columns returned by your statement. If the query returns no rows, then
+	// row.Scan() will return a sql.ErrNoRows error. We check for that and return 
+	// our own models.ErrNoRecord error instead of a Snippet object.
+	err := row.Scan(&s.ID, &s.Title, &s.Content, &s.Created, &s.Expires)
+	if err == sql.ErrNoRows {
+	return nil, models.ErrNoRecord } else if err != nil {
+	return nil, err }
+	// If everything went OK then return the Snippet object.
+	return s, nil
+
+
+```
+
+- Aside: You might be wondering why we’re returning the models.ErrNoRecord error instead of sql.ErrNoRows directly. The reason is to help encapsulate the model completely, so that our application isn’t concerned with the underlying datastore or reliant on datastore- specific errors for its behavior.
+
+
+# TIP
+- Behind the scenes of rows.Scan() your driver will automatically convert the raw output from the SQL database to the required native Go types. So long as you’re sensible with the types that you’re mapping between SQL and Go, these conversions should generally Just Work. Usually:
+  - CHAR, VARCHAR and TEXT map to string. 
+  - BOOLEAN maps to bool.
+  - INT maps to int; 
+  - BIGINT maps to int64. 
+  - DECIMAL and NUMERIC map to float.
+  - TIME, DATE and TIMESTAMP map to time.Time.
